@@ -2,7 +2,8 @@ import React, { Component, createContext } from 'react';
 import { Text, View, Alert } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import { DataProvider } from 'recyclerlistview';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
 export const AudioContext = createContext();
 export class AudioProvider extends Component {
   constructor(props) {
@@ -56,6 +57,23 @@ export class AudioProvider extends Component {
     });
   };
 
+  loadPreviousAudio = async () => {
+    let previousAudio = await AsyncStorage.getItem('previousAudio');
+    let currentAudio;
+    let currentAudioIndex;
+
+    if (previousAudio === null) {
+      currentAudio = this.state.audioFiles[0];
+      currentAudioIndex = 0;
+    } else {
+      previousAudio = JSON.parse(previousAudio);
+      currentAudio = previousAudio.audio;
+      currentAudioIndex = previousAudio.index;
+    }
+
+    this.setState({ ...this.state, currentAudio, currentAudioIndex });
+  };
+
   getPermission = async () => {
     // {
     //     "canAskAgain": true,
@@ -97,6 +115,9 @@ export class AudioProvider extends Component {
 
   componentDidMount() {
     this.getPermission();
+    if (this.state.playbackObj === null) {
+      this.setState({ ...this.state, playbackObj: new Audio.Sound() });
+    }
   }
 
   updateState = (prevState, newState = {}) => {
@@ -144,6 +165,7 @@ export class AudioProvider extends Component {
           playbackPosition,
           playbackDuration,
           updateState: this.updateState,
+          loadPreviousAudio: this.loadPreviousAudio,
         }}
       >
         {this.props.children}

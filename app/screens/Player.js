@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { View, StyleSheet, Text, Dimensions } from 'react-native';
 import Screen from '../components/Screen';
 import color from '../misc/color';
@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import PlayerButton from '../components/PlayerButton';
 import { AudioContext } from '../context/AudioProvider';
+import { pause, play, resume } from '../misc/audioController';
 
 const { width } = Dimensions.get('window');
 
@@ -19,6 +20,42 @@ const Player = () => {
     }
     return 0;
   };
+
+  useEffect(() => {
+    context.loadPreviousAudio();
+  }, []);
+
+  const handlePlayPause = async () => {
+    // play
+    if (context.soundObj === null) {
+      const audio = context.currentAudio;
+      const status = await play(context.playbackObj, audio.uri);
+      return context.updateState(context, {
+        soundObj: status,
+        currentAudio: audio,
+        isPlaying: true,
+        currentAudioIndex: context.currentAudioIndex,
+      });
+    }
+    // pause
+    if (context.soundObj && context.soundObj.isPlaying) {
+      const status = await pause(context.playbackObj);
+      return context.updateState(context, {
+        soundObj: status,
+        isPlaying: false,
+      });
+    }
+    // resume
+    if (context.soundObj && !context.soundObj.isPlaying) {
+      const status = await resume(context.playbackObj);
+      return context.updateState(context, {
+        soundObj: status,
+        isPlaying: true,
+      });
+    }
+  };
+
+  if (!context.currentAudio) return null;
 
   return (
     <Screen>
@@ -48,7 +85,7 @@ const Player = () => {
           <View style={styles.audioControllers}>
             <PlayerButton iconType='PREV' />
             <PlayerButton
-              onPress={() => console.log('playing')}
+              onPress={handlePlayPause}
               style={{ marginHorizontal: 25 }}
               iconType={context.isPlaying ? 'PLAY' : 'PAUSE'}
             />
