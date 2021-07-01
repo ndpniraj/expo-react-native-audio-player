@@ -7,13 +7,17 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
+  Alert,
 } from 'react-native';
 import PlayListInputModal from '../components/PlayListInputModal';
 import { AudioContext } from '../context/AudioProvider';
 import color from '../misc/color';
+import PlayListDetail from '../components/PlayListDetail';
 
+let selectedPlayList = {};
 const PlayList = () => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [showPlayList, setShowPlayList] = useState(false);
 
   const context = useContext(AudioContext);
   const { playList, addToPlayList, updateState } = context;
@@ -64,6 +68,54 @@ const PlayList = () => {
     }
   }, []);
 
+  const handleBannerPress = async playList => {
+    if (addToPlayList) {
+      const result = await AsyncStorage.getItem('playlist');
+
+      let oldList = [];
+      let updatedList = [];
+      let sameAudio = false;
+
+      if (result !== null) {
+        oldList = JSON.parse(result);
+
+        updatedList = oldList.filter(list => {
+          if (list.id === playList.id) {
+            // we want to check is that same audio is already inside our list or not.
+            for (let audio of list.audios) {
+              if (audio.id === addToPlayList.id) {
+                // alert with some message
+                sameAudio = true;
+                return;
+              }
+            }
+
+            // otherwise update the playlist.
+            list.audios = [...list.audios, addToPlayList];
+          }
+
+          return list;
+        });
+      }
+
+      if (sameAudio) {
+        Alert.alert(
+          'Found same audio!',
+          `${addToPlayList.filename} is already inside the list.`
+        );
+        sameAudio = false;
+        return updateState(context, { addToPlayList: null });
+      }
+
+      updateState(context, { addToPlayList: null, playList: [...updatedList] });
+      return AsyncStorage.setItem('playlist', JSON.stringify([...updatedList]));
+    }
+
+    // if there is no audio selected then we want open the list.
+    selectedPlayList = playList;
+    setShowPlayList(true);
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {playList.length
@@ -71,6 +123,7 @@ const PlayList = () => {
             <TouchableOpacity
               key={item.id.toString()}
               style={styles.playListBanner}
+              onPress={() => handleBannerPress(item)}
             >
               <Text>{item.title}</Text>
               <Text style={styles.audioCount}>
@@ -93,6 +146,11 @@ const PlayList = () => {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSubmit={createPlayList}
+      />
+      <PlayListDetail
+        visible={showPlayList}
+        playList={selectedPlayList}
+        onClose={() => setShowPlayList(false)}
       />
     </ScrollView>
   );
