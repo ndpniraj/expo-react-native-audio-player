@@ -13,7 +13,8 @@ import {
   playNext,
   resume,
 } from '../misc/audioController';
-import { storeAudioForNextOpening } from '../misc/helper';
+import { convertTime, storeAudioForNextOpening } from '../misc/helper';
+import { selectAudio } from '../misc/audioController';
 
 const { width } = Dimensions.get('window');
 
@@ -147,6 +148,10 @@ const Player = () => {
     // storeAudioForNextOpening(audio, index);
   };
 
+  const renderCurrentTime = () => {
+    return convertTime(context.playbackPosition / 1000);
+  };
+
   if (!context.currentAudio) return null;
 
   return (
@@ -166,6 +171,16 @@ const Player = () => {
           <Text numberOfLines={1} style={styles.audioTitle}>
             {context.currentAudio.filename}
           </Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              paddingHorizontal: 15,
+            }}
+          >
+            <Text>{convertTime(context.currentAudio.duration)}</Text>
+            <Text>{renderCurrentTime()}</Text>
+          </View>
           <Slider
             style={{ width: width, height: 40 }}
             minimumValue={0}
