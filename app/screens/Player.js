@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { View, StyleSheet, Text, Dimensions } from 'react-native';
 import Screen from '../components/Screen';
 import color from '../misc/color';
@@ -8,6 +8,7 @@ import PlayerButton from '../components/PlayerButton';
 import { AudioContext } from '../context/AudioProvider';
 import {
   changeAudio,
+  moveAudio,
   pause,
   play,
   playNext,
@@ -19,6 +20,7 @@ import { selectAudio } from '../misc/audioController';
 const { width } = Dimensions.get('window');
 
 const Player = () => {
+  const [currentPosition, setCurrentPosition] = useState(0);
   const context = useContext(AudioContext);
   const { playbackPosition, playbackDuration } = context;
 
@@ -179,7 +181,9 @@ const Player = () => {
             }}
           >
             <Text>{convertTime(context.currentAudio.duration)}</Text>
-            <Text>{renderCurrentTime()}</Text>
+            <Text>
+              {currentPosition ? currentPosition : renderCurrentTime()}
+            </Text>
           </View>
           <Slider
             style={{ width: width, height: 40 }}
@@ -188,6 +192,21 @@ const Player = () => {
             value={calculateSeebBar()}
             minimumTrackTintColor={color.FONT_MEDIUM}
             maximumTrackTintColor={color.ACTIVE_BG}
+            onValueChange={value => {
+              setCurrentPosition(
+                convertTime(value * context.currentAudio.duration)
+              );
+            }}
+            onSlidingStart={async () => {
+              if (!context.isPlaying) return;
+
+              try {
+                await pause(context.playbackObj);
+              } catch (error) {
+                console.log('error inside onSlidingStart callback', error);
+              }
+            }}
+            onSlidingComplete={async value => await moveAudio(context, value)}
           />
           <View style={styles.audioControllers}>
             <PlayerButton iconType='PREV' onPress={handlePrevious} />
