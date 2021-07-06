@@ -20,6 +20,8 @@ export class AudioProvider extends Component {
       soundObj: null,
       currentAudio: {},
       isPlaying: false,
+      isPlayListRunning: false,
+      activePlayList: [],
       currentAudioIndex: null,
       playbackPosition: null,
       playbackDuration: null,
@@ -96,10 +98,8 @@ export class AudioProvider extends Component {
     }
 
     if (!permission.granted && permission.canAskAgain) {
-      const {
-        status,
-        canAskAgain,
-      } = await MediaLibrary.requestPermissionsAsync();
+      const { status, canAskAgain } =
+        await MediaLibrary.requestPermissionsAsync();
       if (status === 'denied' && canAskAgain) {
         //   we are going to display alert that user must allow this permission to work this app
         this.permissionAllert();
@@ -126,6 +126,29 @@ export class AudioProvider extends Component {
     }
 
     if (playbackStatus.didJustFinish) {
+      if (this.state.isPlayListRunning) {
+        let audio;
+        const indexOnPlayList = this.state.activePlayList.audios.findIndex(
+          ({ id }) => id === this.state.currentAudio.id
+        );
+        const nextIndex = indexOnPlayList + 1;
+        audio = this.state.activePlayList.audios[nextIndex];
+
+        if (!audio) audio = this.state.activePlayList.audios[0];
+
+        const indexOnAllList = this.state.audioFiles.findIndex(
+          ({ id }) => id === audio.id
+        );
+
+        const status = await playNext(this.state.playbackObj, audio.uri);
+        return this.updateState(this, {
+          soundObj: status,
+          isPlaying: true,
+          currentAudio: audio,
+          currentAudioIndex: indexOnAllList,
+        });
+      }
+
       const nextAudioIndex = this.state.currentAudioIndex + 1;
       // there is no next audio to play or the current audio is the last
       if (nextAudioIndex >= this.totalAudioCount) {
@@ -178,6 +201,8 @@ export class AudioProvider extends Component {
       currentAudioIndex,
       playbackPosition,
       playbackDuration,
+      isPlayListRunning,
+      activePlayList,
     } = this.state;
     if (permissionError)
       return (
@@ -208,6 +233,8 @@ export class AudioProvider extends Component {
           totalAudioCount: this.totalAudioCount,
           playbackPosition,
           playbackDuration,
+          isPlayListRunning,
+          activePlayList,
           updateState: this.updateState,
           loadPreviousAudio: this.loadPreviousAudio,
           onPlaybackStatusUpdate: this.onPlaybackStatusUpdate,

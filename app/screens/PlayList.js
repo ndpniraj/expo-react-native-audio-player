@@ -15,7 +15,7 @@ import color from '../misc/color';
 import PlayListDetail from '../components/PlayListDetail';
 
 let selectedPlayList = {};
-const PlayList = () => {
+const PlayList = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [showPlayList, setShowPlayList] = useState(false);
 
@@ -113,7 +113,8 @@ const PlayList = () => {
 
     // if there is no audio selected then we want open the list.
     selectedPlayList = playList;
-    setShowPlayList(true);
+    // setShowPlayList(true);
+    navigation.navigate('PlayListDetail', playList);
   };
 
   return (

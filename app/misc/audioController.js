@@ -43,7 +43,7 @@ export const playNext = async (playbackObj, uri) => {
   }
 };
 
-export const selectAudio = async (audio, context) => {
+export const selectAudio = async (audio, context, playListInfo = {}) => {
   const {
     soundObj,
     playbackObj,
@@ -56,12 +56,15 @@ export const selectAudio = async (audio, context) => {
     // playing audio for the first time.
     if (soundObj === null) {
       const status = await play(playbackObj, audio.uri);
-      const index = audioFiles.indexOf(audio);
+      const index = audioFiles.findIndex(({ id }) => id === audio.id);
       updateState(context, {
         currentAudio: audio,
         soundObj: status,
         isPlaying: true,
         currentAudioIndex: index,
+        isPlayListRunning: false,
+        activePlayList: [],
+        ...playListInfo,
       });
       playbackObj.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
       return storeAudioForNextOpening(audio, index);
@@ -94,12 +97,15 @@ export const selectAudio = async (audio, context) => {
     // select another audio
     if (soundObj.isLoaded && currentAudio.id !== audio.id) {
       const status = await playNext(playbackObj, audio.uri);
-      const index = audioFiles.indexOf(audio);
+      const index = audioFiles.findIndex(({ id }) => id === audio.id);
       updateState(context, {
         currentAudio: audio,
         soundObj: status,
         isPlaying: true,
         currentAudioIndex: index,
+        isPlayListRunning: false,
+        activePlayList: [],
+        ...playListInfo,
       });
       return storeAudioForNextOpening(audio, index);
     }
