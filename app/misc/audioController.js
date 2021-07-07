@@ -114,6 +114,41 @@ export const selectAudio = async (audio, context, playListInfo = {}) => {
   }
 };
 
+const selectAudioFromPlayList = async (context, select) => {
+  const { activePlayList, currentAudio, audioFiles, playbackObj, updateState } =
+    context;
+  let audio;
+  let defaultIndex;
+  let nextIndex;
+
+  const indexOnPlayList = activePlayList.audios.findIndex(
+    ({ id }) => id === currentAudio.id
+  );
+
+  if (select === 'next') {
+    nextIndex = indexOnPlayList + 1;
+    defaultIndex = 0;
+  }
+
+  if (select === 'previous') {
+    nextIndex = indexOnPlayList - 1;
+    defaultIndex = activePlayList.audios.length - 1;
+  }
+  audio = activePlayList.audios[nextIndex];
+
+  if (!audio) audio = activePlayList.audios[defaultIndex];
+
+  const indexOnAllList = audioFiles.findIndex(({ id }) => id === audio.id);
+
+  const status = await playNext(playbackObj, audio.uri);
+  return updateState(context, {
+    soundObj: status,
+    isPlaying: true,
+    currentAudio: audio,
+    currentAudioIndex: indexOnAllList,
+  });
+};
+
 export const changeAudio = async (context, select) => {
   const {
     playbackObj,
@@ -121,7 +156,11 @@ export const changeAudio = async (context, select) => {
     totalAudioCount,
     audioFiles,
     updateState,
+    isPlayListRunning,
   } = context;
+
+  if (isPlayListRunning) return selectAudioFromPlayList(context, select);
+
   try {
     const { isLoaded } = await playbackObj.getStatusAsync();
     const isLastAudio = currentAudioIndex + 1 === totalAudioCount;
@@ -136,6 +175,7 @@ export const changeAudio = async (context, select) => {
       if (!isLoaded && !isLastAudio) {
         index = currentAudioIndex + 1;
         status = await play(playbackObj, audio.uri);
+        playbackObj.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
       }
 
       if (isLoaded && !isLastAudio) {
@@ -160,6 +200,7 @@ export const changeAudio = async (context, select) => {
       if (!isLoaded && !isFirstAudio) {
         index = currentAudioIndex - 1;
         status = await play(playbackObj, audio.uri);
+        playbackObj.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
       }
 
       if (isLoaded && !isFirstAudio) {
