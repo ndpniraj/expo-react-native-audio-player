@@ -125,6 +125,14 @@ export class AudioProvider extends Component {
       });
     }
 
+    if (playbackStatus.isLoaded && !playbackStatus.isPlaying) {
+      storeAudioForNextOpening(
+        this.state.currentAudio,
+        this.state.currentAudioIndex,
+        playbackStatus.positionMillis
+      );
+    }
+
     if (playbackStatus.didJustFinish) {
       if (this.state.isPlayListRunning) {
         let audio;
