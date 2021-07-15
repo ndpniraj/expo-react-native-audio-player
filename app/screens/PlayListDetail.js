@@ -6,6 +6,7 @@ import {
   FlatList,
   Text,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import { selectAudio } from '../misc/audioController';
 import color from '../misc/color';
@@ -81,10 +82,61 @@ const PlayListDetail = props => {
     closeModal();
   };
 
+  const removePlaylist = async () => {
+    let isPlaying = context.isPlaying;
+    let isPlayListRunning = context.isPlayListRunning;
+    let soundObj = context.soundObj;
+    let playbackPosition = context.playbackPosition;
+    let activePlayList = context.activePlayList;
+
+    if (context.isPlayListRunning && activePlayList.id === playList.id) {
+      // stop
+      await context.playbackObj.stopAsync();
+      await context.playbackObj.unloadAsync();
+      isPlaying = false;
+      isPlayListRunning = false;
+      soundObj = null;
+      playbackPosition = 0;
+      activePlayList = [];
+    }
+
+    const result = await AsyncStorage.getItem('playlist');
+    if (result !== null) {
+      const oldPlayLists = JSON.parse(result);
+      const updatedPlayLists = oldPlayLists.filter(
+        item => item.id !== playList.id
+      );
+
+      AsyncStorage.setItem('playlist', JSON.stringify(updatedPlayLists));
+      context.updateState(context, {
+        playList: updatedPlayLists,
+        isPlayListRunning,
+        activePlayList,
+        playbackPosition,
+        isPlaying,
+        soundObj,
+      });
+    }
+
+    props.navigation.goBack();
+  };
+
   return (
     <>
       <View style={styles.container}>
-        <Text style={styles.title}>{playList.title}</Text>
+        <View
+          style={{
+            width: '100%',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            paddingHorizontal: 15,
+          }}
+        >
+          <Text style={styles.title}>{playList.title}</Text>
+          <TouchableOpacity onPress={removePlaylist}>
+            <Text style={[styles.title, { color: 'red' }]}>Remove</Text>
+          </TouchableOpacity>
+        </View>
         {audios.length ? (
           <FlatList
             contentContainerStyle={styles.listContainer}
@@ -131,7 +183,7 @@ const PlayListDetail = props => {
 
 const styles = StyleSheet.create({
   container: {
-    alignSelf: 'center',
+    alignItems: 'center',
   },
   listContainer: {
     padding: 20,
